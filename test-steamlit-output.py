@@ -1,13 +1,19 @@
 from datetime import datetime
-
 import pandas as pd
 import streamlit as st
-
 import plots
+import json
+
+
+
+with open('config.json') as f:
+    config = json.load(f)
+
+default_tariff_rate = config.get("default_tariff_rate", 3.2)  # Default to 3.2 if not found
 
 # --- Sample Data ---
 machinery = {
-    "Chillers Tubes":  {
+    "Condenser Tube Cleaning of Chillers":  {
         "NP": [
             "WCC-N-1-1",
             "WCC-N-1-2",
@@ -37,7 +43,7 @@ machinery = {
             "WCC-S-3-3",
         ]
     },
-    "Substation Plate heat":  {
+    "Substation Heat Exchangers":  {
         "NP": [
             '1A1 HX1',
             '1A1 HX2',
@@ -180,7 +186,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("HKDC Preventive Maintenance Dashboard")
+st.title("Preventive Maintenance Dashboard")
 
 @st.fragment(run_every="1s")
 def display_live_clock():
@@ -200,34 +206,79 @@ display_live_clock()
 # overview_cols[1].metric("Due for Maintenance", 2)
 # overview_cols[2].metric("Maintenances (30d)", 3)
 
+def display_machine_image(machine_type):
+    # Replace these paths with your actual image paths
+    image_paths = {
+        "NP": "plot/input/img.png",  # Path for NP image
+        "SP": "plot/input/img.png"   # Path for SP image
+    }
+    return image_paths.get(machine_type, "")
+
+def get_tab_icon(category):
+    icons = {
+        "NP": "🛠️",  # Icon for NP
+        "SP": "⚙️",   # Icon for SP
+    }
+    return icons.get(category, "")
+
 tabs = st.tabs(list(machinery.keys()))
 for i, part in enumerate(machinery):
     with tabs[i]:
-        st.markdown(f"<span class='highlight'>{part} Machines</span>", unsafe_allow_html=True)
+        st.markdown(f"<span class='highlight'>{part}</span>", unsafe_allow_html=True)
         machine_tabs = st.tabs(list(machinery[part].keys()))
 
         for j, category in enumerate(machinery[part]):
             with machine_tabs[j]:
-                selected_machine = st.selectbox("Select Machine", machinery[part][category])
-                dates = pd.date_range(end=pd.Timestamp.today(), periods=12)
-                st.markdown("<div class='multi-row-tabs'>", unsafe_allow_html=True)
-                st.markdown(
-                    f"""
-                    <div style='font-size:22px; line-height:1.4;'>
-                    <b>Machine:</b> <span style='color:orange'>{selected_machine}</span><br>
-                    <b>Next Maintenance:</b> <span style='color:orange'>{(dates[-1] + pd.Timedelta(days=30)).date()}</span><br>
-                    <b>Last Maintenance:</b> {dates[-2].date()}<br>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
                 if i == 0:
+                    tariff_rate = st.number_input("Enter Tariff Rate (per kWh)",
+                                                  min_value=0.0,
+                                                  format="%.2f",
+                                                  value=default_tariff_rate,
+                                                  key=f"tariff_rate_{i}_{j}")
+                    st.write(f"The entered tariff rate is: {tariff_rate} per kWh.")
+                    selected_machine = st.selectbox("Select Machine", machinery[part][category])
+                    dates = pd.date_range(end=pd.Timestamp.today(), periods=12)
+                    st.markdown("<div class='multi-row-tabs'>", unsafe_allow_html=True)
+                    st.markdown(
+                        f"""
+                                       <div style='font-size:22px; line-height:1.4;'>
+                                       <b>Machine:</b> <span style='color:orange'>{selected_machine}</span><br>
+                                       <b>Next Maintenance:</b> <span style='color:orange'>{plots.predicted_end_date.date()}</span><br>
+                                       <b>Last Maintenance:</b> {plots.start_date.date()}<br>
+                                       </div>
+                                       """,
+                        unsafe_allow_html=True
+                    )
                     plots.plot_wcc_charts(st,plots.results_df, plots.start_date, plots.predicted_end_date, plots.current_date,
                                           plots.target_cost, plots.current_date_running_hours,key_prefix=f"chart_{i}_{j}")
                 if i == 1:
+                    selected_machine = st.selectbox("Select Heat Exchangers", machinery[part][category])
+                    st.markdown("<div class='multi-row-tabs'>", unsafe_allow_html=True)
+                    st.markdown(
+                        f"""
+                                       <div style='font-size:22px; line-height:1.4;'>
+                                       <b>Heat Exchangers:</b> <span style='color:orange'>{selected_machine}</span><br>
+                                       <b>Last Maintenance:</b> {plots.ss_start_date}<br>
+                                       </div>
+                                       """,
+                        unsafe_allow_html=True
+                    )
                     plots.plot_ss_charts(st, plots.results_df, plots.start_date, plots.predicted_end_date, plots.current_date,
                                           plots.target_cost, plots.current_date_running_hours, key_prefix=f"chart_{i}_{j}")
                 if i == 2:
+                    selected_machine = st.selectbox("Select Chillers", machinery[part][category])
+                    dates = pd.date_range(end=pd.Timestamp.today(), periods=12)
+                    st.markdown("<div class='multi-row-tabs'>", unsafe_allow_html=True)
+                    st.markdown(
+                        f"""
+                                                         <div style='font-size:22px; line-height:1.4;'>
+                                                         <b>Chiller:</b> <span style='color:orange'>{selected_machine}</span><br>
+                                                         <b>Next Maintenance:</b> <span style='color:orange'>{plots.predicted_end_date.date()}</span><br>
+                                                         <b>Last Maintenance:</b> {plots.start_date.date()}<br>
+                                                         </div>
+                                                         """,
+                        unsafe_allow_html=True
+                    )
                     plots.plot_vib_charts(st, plots.results_df, plots.start_date, plots.predicted_end_date,
                                          plots.current_date,
                                          plots.target_cost, plots.current_date_running_hours,

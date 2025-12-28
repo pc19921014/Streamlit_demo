@@ -4,7 +4,7 @@ import numpy as np
 import plotly.graph_objs as go
 
 
-results_df = pd.read_csv('plot/input/prediction_results_SP_2_2.csv', sep = ',')
+results_df = pd.read_csv('plot/input/prediction_results_NP_2_1.csv', sep = ',')
 results_df['start_date'] = pd.to_datetime(results_df['start_date'])
 start_date = results_df['start_date'][0]
 results_df['predicted_end_date'] = pd.to_datetime(results_df['predicted_end_date'])
@@ -15,6 +15,8 @@ target_cost = 300000
 current_date_running_hours = results_df['current_running_hour'][0]
 results_df = results_df[1:]
 
+print(start_date)
+print(predicted_end_date)
 
 results_ss_df = pd.read_csv('plot/input/V-01_HX1_all_data (1).csv', sep = ',')
 results_ss_df['start_date'] = pd.to_datetime(results_ss_df['start_date'])
@@ -59,7 +61,7 @@ def plot_wcc_charts(st,results_df, start_date, predicted_end_date, current_date,
     fig1.update_traces(line_color="orange")
 
     # Plot 2: Power Difference Over Time
-    fig2 = px.line(results_df, x='cumulative_running_hours', y='power_difference', title='Power Difference Over Running Hours')
+    fig2 = px.line(results_df, x='cumulative_running_hours', y='cumulative_power_increase', title='Power Difference Over Running Hours')
     if current_date_running_hours is not None:
         fig2.add_vline(x=current_date_running_hours, line_dash="dot", line_color="grey",annotation_font=dict(color="grey"),
                        annotation_text=f'Current Date ({current_date.strftime("%Y-%m")})',
@@ -148,7 +150,7 @@ def plot_ss_charts(st,results_df, ss_start_date, predicted_end_date, ss_current_
     fig1.update_traces(line_color="orange")
 
     fig2 = px.line(results_ss_df, x='running_hour', y='HX1_supply_dt_cumulative_change',
-                   title='HX Primary Side Supply DeltaT Over Running Hours')
+                   title='DeltaT of Supply Temperature between Primary & Secondary loop Over Running Hours')
     if ss_start_date is not None:
         fig2.add_vline(x=min(results_ss_df['running_hour']),
                        line_dash="dot", line_color="grey",annotation_font=dict(color="grey"),
@@ -164,36 +166,11 @@ def plot_ss_charts(st,results_df, ss_start_date, predicted_end_date, ss_current_
         font_color="white",
         title_font_color="white",
         xaxis=dict(title='Cumulative Running Hours', color='white', dtick=1000),
-        yaxis=dict(title='HX Primary Side Supply DeltaT(°C)', color='white', dtick=0.05),
+        yaxis=dict(title='Delta T of Supply Temp (°C)', color='white', dtick=0.05),
         height=400,
         margin=dict(l=40, r=30, t=60, b=40)
     )
     fig2.update_traces(line_color="orange")
-
-
-    fig2 = px.line(results_ss_df, x='running_hour', y='HX1_supply_dt_cumulative_change',
-                   title='HX Primary Side Supply DeltaT Over Running Hours')
-    if ss_start_date is not None:
-        fig2.add_vline(x=min(results_ss_df['running_hour']),
-                       line_dash="dot", line_color="grey",annotation_font=dict(color="grey"),
-                       annotation_text=f'Start Date ({ss_start_date.strftime("%Y-%m-%d")})',
-                       annotation_position="bottom right")
-    if ss_current_date is not None:
-        fig2.add_vline(x=max(results_ss_df['running_hour']), line_dash="dot", line_color="grey",annotation_font=dict(color="grey"),
-                       annotation_text=f'Current Date ({ss_current_date.strftime("%Y-%m")})',
-                       annotation_position="bottom right")
-    fig2.update_layout(
-        plot_bgcolor="#222",
-        paper_bgcolor="#222",
-        font_color="white",
-        title_font_color="white",
-        xaxis=dict(title='Cumulative Running Hours', color='white', dtick=1000),
-        yaxis=dict(title='HX Primary Side Supply DeltaT(°C)', color='white', dtick=0.05),
-        height=400,
-        margin=dict(l=40, r=30, t=60, b=40)
-    )
-    fig2.update_traces(line_color="orange")
-
 
     fig3 = px.line(results_ss_df, x='running_hour', y='HX1_primary_dp_cumulative_change',
                    title='HX Primary Side DeltaP Over Running Hours')
@@ -250,13 +227,13 @@ def plot_ss_charts(st,results_df, ss_start_date, predicted_end_date, ss_current_
 def plot_vib_charts(st,results_df, ss_start_date, predicted_end_date, ss_current_date, target_cost,current_date_running_hours,key_prefix):
     # Parameters
     # Parameters
-    num_samples = 1000  # Number of data points to generate
+    num_samples = 1440  # Number of data points to generate
     time = np.linspace(0, 10, num_samples)  # Time vector
 
     # Generate random RMS velocity data for X, Y, Z
-    x_rms = np.random.uniform(0, 4, num_samples)
-    y_rms = np.random.uniform(0, 4, num_samples)
-    z_rms = np.random.uniform(0, 4, num_samples)
+    x_rms = np.random.uniform(2, 4, num_samples)
+    y_rms = np.random.uniform(2, 4, num_samples)
+    z_rms = np.random.uniform(2, 4, num_samples)
 
     # ISO 10816-3 Group 1 alert lines
     normal_limit = 2.8  # Normal (Green Zone)
@@ -267,13 +244,15 @@ def plot_vib_charts(st,results_df, ss_start_date, predicted_end_date, ss_current
     fig_y = go.Figure()
     fig_z = go.Figure()
 
+    time = pd.date_range(end=pd.Timestamp.now(), periods=num_samples, freq='1min')  # 1-minute frequency
+
     # Plot for X RMS Velocity
     fig_x.add_trace(go.Scatter(x=time, y=x_rms, mode='lines', name='X RMS Velocity', line=dict(color='purple')))
     fig_x.add_hline(y=normal_limit, line_color='orange', line_dash='dash',
                     annotation_text='Normal Limit (2.8 mm/s)', annotation_position='top right')
     fig_x.add_hline(y=warning_limit, line_color='red', line_dash='dash',
                     annotation_text='Warning Limit (4.5 mm/s)', annotation_position='top right')
-    fig_x.update_layout(title='X RMS Velocity', xaxis_title='Time (s)', yaxis_title='RMS Velocity (mm/s)',
+    fig_x.update_layout(title='X RMS Velocity', yaxis_title='RMS Velocity (mm/s)',
                         template='plotly_white')
 
     # Plot for Y RMS Velocity
@@ -282,7 +261,7 @@ def plot_vib_charts(st,results_df, ss_start_date, predicted_end_date, ss_current
                     annotation_text='Normal Limit (2.8 mm/s)', annotation_position='top right')
     fig_y.add_hline(y=warning_limit, line_color='red', line_dash='dash',
                     annotation_text='Warning Limit (4.5 mm/s)', annotation_position='top right')
-    fig_y.update_layout(title='Y RMS Velocity', xaxis_title='Time (s)', yaxis_title='RMS Velocity (mm/s)',
+    fig_y.update_layout(title='Y RMS Velocity', yaxis_title='RMS Velocity (mm/s)',
                         template='plotly_white')
 
     # Plot for Z RMS Velocity
@@ -291,7 +270,7 @@ def plot_vib_charts(st,results_df, ss_start_date, predicted_end_date, ss_current
                     annotation_text='Normal Limit (2.8 mm/s)', annotation_position='top right')
     fig_z.add_hline(y=warning_limit, line_color='red', line_dash='dash',
                     annotation_text='Warning Limit (4.5 mm/s)', annotation_position='top right')
-    fig_z.update_layout(title='Z RMS Velocity', xaxis_title='Time (s)', yaxis_title='RMS Velocity (mm/s)',
+    fig_z.update_layout(title='Z RMS Velocity', yaxis_title='RMS Velocity (mm/s)',
                         template='plotly_white')
 
     # Display each figure in Streamlit
