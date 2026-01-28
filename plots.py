@@ -120,13 +120,19 @@ def plot_wcc_charts(st,results_df, start_date, predicted_end_date, current_date,
     fig3.update_traces(line_color="orange")
 
     # Display plots in Streamlit
-    st.plotly_chart(fig1, use_container_width=True, key=f"{key_prefix}_fig1")
-    st.plotly_chart(fig2, use_container_width=True, key=f"{key_prefix}_fig2")
-    st.plotly_chart(fig3, use_container_width=True, key=f"{key_prefix}_fig3")
+    st.plotly_chart(fig1, width='stretch', key=f"{key_prefix}_fig1")
+    st.plotly_chart(fig2, width='stretch', key=f"{key_prefix}_fig2")
+    st.plotly_chart(fig3, width='stretch', key=f"{key_prefix}_fig3")
 
-def plot_ss_charts(st,results_df, ss_start_date, predicted_end_date, ss_current_date, target_cost,current_date_running_hours,key_prefix):
+def plot_ss_charts(st, results_ss_df, ss_start_date, predicted_end_date, ss_current_date, target_cost, current_date_running_hours, key_prefix, hx_num="1"):
     # Plot 1: Total Cost Over Time
-    fig1 = px.line(results_ss_df, x='running_hour', y='HX1_lmtd_cumulative_change', title='HX Log Mean Temp Over Running Hours')
+    # Use dynamic column names based on HX number
+    lmtd_col = f'HX{hx_num}_lmtd_cumulative_change'
+    supply_dt_col = f'HX{hx_num}_supply_dt_cumulative_change'
+    primary_dp_col = f'HX{hx_num}_primary_dp_cumulative_change'
+    secondary_dp_col = f'HX{hx_num}_secondary_dp_cumulative_change'
+    
+    fig1 = px.line(results_ss_df, x='running_hour', y=lmtd_col, title='HX Log Mean Temp Over Running Hours')
     if ss_start_date is not None:
         fig1.add_vline(x=min(results_ss_df['running_hour']),
                        line_dash="dot", line_color="grey",annotation_font=dict(color="grey"),
@@ -149,7 +155,7 @@ def plot_ss_charts(st,results_df, ss_start_date, predicted_end_date, ss_current_
     )
     fig1.update_traces(line_color="orange")
 
-    fig2 = px.line(results_ss_df, x='running_hour', y='HX1_supply_dt_cumulative_change',
+    fig2 = px.line(results_ss_df, x='running_hour', y=supply_dt_col,
                    title='DeltaT of Supply Temperature between Primary & Secondary loop Over Running Hours')
     if ss_start_date is not None:
         fig2.add_vline(x=min(results_ss_df['running_hour']),
@@ -172,7 +178,7 @@ def plot_ss_charts(st,results_df, ss_start_date, predicted_end_date, ss_current_
     )
     fig2.update_traces(line_color="orange")
 
-    fig3 = px.line(results_ss_df, x='running_hour', y='HX1_primary_dp_cumulative_change',
+    fig3 = px.line(results_ss_df, x='running_hour', y=primary_dp_col,
                    title='HX Primary Side DeltaP Over Running Hours')
     if ss_start_date is not None:
         fig3.add_vline(x=min(results_ss_df['running_hour']),
@@ -195,7 +201,7 @@ def plot_ss_charts(st,results_df, ss_start_date, predicted_end_date, ss_current_
     )
     fig3.update_traces(line_color="orange")
 
-    fig4 = px.line(results_ss_df, x='running_hour', y='HX1_secondary_dp_cumulative_change',
+    fig4 = px.line(results_ss_df, x='running_hour', y=secondary_dp_col,
                    title='HX Secondary Side DeltaP Over Running Hours')
     if ss_start_date is not None:
         fig4.add_vline(x=min(results_ss_df['running_hour']),
@@ -219,10 +225,10 @@ def plot_ss_charts(st,results_df, ss_start_date, predicted_end_date, ss_current_
     fig4.update_traces(line_color="orange")
 
     # Display plots in Streamlit
-    st.plotly_chart(fig1, use_container_width=True, key=f"{key_prefix}_fig1")
-    st.plotly_chart(fig2, use_container_width=True, key=f"{key_prefix}_fig2")
-    st.plotly_chart(fig3, use_container_width=True, key=f"{key_prefix}_fig3")
-    st.plotly_chart(fig4, use_container_width=True, key=f"{key_prefix}_fig4")
+    st.plotly_chart(fig1, width='stretch', key=f"{key_prefix}_fig1")
+    st.plotly_chart(fig2, width='stretch', key=f"{key_prefix}_fig2")
+    st.plotly_chart(fig3, width='stretch', key=f"{key_prefix}_fig3")
+    st.plotly_chart(fig4, width='stretch', key=f"{key_prefix}_fig4")
 
 def plot_vib_charts(st,results_df, ss_start_date, predicted_end_date, ss_current_date, target_cost,current_date_running_hours,key_prefix):
     # Parameters
